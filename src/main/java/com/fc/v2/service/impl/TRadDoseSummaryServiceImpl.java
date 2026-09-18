@@ -31,7 +31,7 @@ public class TRadDoseSummaryServiceImpl implements ITRadDoseSummaryService {
     private TRadAlarmBillMapper radAlarmBillMapper;
 
     @Override
-    public TRadDoseSummary pick(String period, Integer siteId) {
+    public TRadDoseSummary pick(String period, Long siteId) {
         List<TRadDoseSummary> all = listSummary(period);
         for (TRadDoseSummary s : all) {
             if (s.getSiteId() != null && s.getSiteId().equals(siteId)) {
@@ -45,10 +45,10 @@ public class TRadDoseSummaryServiceImpl implements ITRadDoseSummaryService {
     public int rebuild(String period) {
         List<TRadAlarmBill> rows = this.radAlarmBillMapper.selectList(new QueryWrapper<TRadAlarmBill>());
         List<TRadDoseSummary> out = new ArrayList<TRadDoseSummary>();
-        Map<Integer, BigDecimal> sum = new HashMap<Integer, BigDecimal>();
-        Map<Integer, Integer> cnt = new HashMap<Integer, Integer>();
+        Map<Long, BigDecimal> sum = new HashMap<Long, BigDecimal>();
+        Map<Long, Integer> cnt = new HashMap<Long, Integer>();
         for (TRadAlarmBill r : rows) {
-            Integer site = r.getSiteId();
+            Long site = r.getSiteId();
             BigDecimal qty = r.getQty();
             if (sum.containsKey(site)) {
                 sum.put(site, sum.get(site).add(qty));
@@ -58,7 +58,7 @@ public class TRadDoseSummaryServiceImpl implements ITRadDoseSummaryService {
                 cnt.put(site, 1);
             }
         }
-        for (Integer site : sum.keySet()) {
+        for (Long site : sum.keySet()) {
             TRadDoseSummary s = new TRadDoseSummary();
             s.setPeriod(period);
             s.setSiteId(site);

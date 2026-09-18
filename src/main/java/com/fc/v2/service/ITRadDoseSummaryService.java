@@ -13,7 +13,7 @@ import com.fc.v2.model.auto.TRadDoseSummary;
 public interface ITRadDoseSummaryService {
 
     /** 按月份 + 场所取一条汇总（不存在返回 null） */
-    TRadDoseSummary pick(String period, Integer siteId);
+    TRadDoseSummary pick(String period, Long siteId);
 
     /**
      * 重建某个月的汇总：按场所分组汇总剂量数据，返回**本次写出的汇总行数**。

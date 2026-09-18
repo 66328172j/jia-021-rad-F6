@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <th:block th:include="include :: header('辐射工作场所台账')"/>
+</head>
+<body class="pear-container">
+<div class="layui-card">
+    <div class="layui-card-body">
+        <form class="layui-form" action="">
+            <div class="layui-form-item">
+                <label class="layui-form-label">场所编号</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="siteNo" placeholder="如 RAD001" class="layui-input">
+                </div>
+                <label class="layui-form-label">场所名称</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="siteName" class="layui-input">
+                </div>
+                <label class="layui-form-label">所属分区</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="areaName" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">档案状态</label>
+                <div class="layui-input-inline">
+                    <select name="status" class="layui-input">
+                        <option value="">全部</option>
+                        <option value="0">在用</option>
+                        <option value="1">停用</option>
+                    </select>
+                </div>
+                <button class="pear-btn pear-btn-md pear-btn-primary" lay-submit lay-filter="site-query">
+                    <i class="layui-icon layui-icon-search"></i>
+                    查询
+                </button>
+                <button type="reset" class="pear-btn pear-btn-md">
+                    <i class="layui-icon layui-icon-refresh"></i>
+                    重置
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="layui-card">
+    <div class="layui-card-body">
+        <table id="site-table" lay-filter="site-table"></table>
+    </div>
+</div>
+</body>
+
+<script type="text/html" id="site-toolbar">
+    <button shiro:hasPermission="rad:radSite:add" class="pear-btn pear-btn-primary pear-btn-md" lay-event="register">
+        <i class="layui-icon layui-icon-add-1"></i>
+        场所登记
+    </button>
+</script>
+
+<script type="text/html" id="site-status-tpl">
+    {{# if(d.status === 0){ }}
+    <span style="color:#5FB878;">在用</span>
+    {{# } else { }}
+    <span style="color:#FF5722;">停用</span>
+    {{# } }}
+</script>
+
+<script type="text/html" id="site-bar">
+    <button shiro:hasPermission="rad:radSite:edit" class="pear-btn pear-btn-primary pear-btn-sm" lay-event="edit">
+        <i class="layui-icon layui-icon-edit"></i>
+    </button>
+    {{# if(d.status === 0){ }}
+    <button shiro:hasPermission="rad:radSite:disable" class="pear-btn pear-btn-sm" style="background-color:#FFB800;" lay-event="disable">
+        <i class="layui-icon layui-icon-pause"></i> 停用
+    </button>
+    {{# } }}
+</script>
+
+<th:block th:include="include :: footer"/>
+<script>
+    layui.use(['table', 'form', 'jquery'], function () {
+        let table = layui.table;
+        let form = layui.form;
+        let $ = layui.jquery;
+
+        let MODULE_PATH = rootPath + "/RadSiteController/";
+        let cols = [
+            [
+                {title: 'ID', field: 'id', align: 'center', hide: true},
+                {title: '场所编号', field: 'siteNo', align: 'center', width: 130},
+                {title: '场所名称', field: 'siteName', align: 'center'},
+                {title: '场所类型', field: 'siteType', align: 'center'},
+                {title: '所属分区', field: 'areaName', align: 'center'},
+                {title: '档案状态', field: 'status', align: 'center', width: 100, templet: '#site-status-tpl'},
+                {title: '备注', field: 'remark', align: 'center'},
+                {title: '操作', toolbar: '#site-bar', align: 'center', width: 180}
+            ]
+        ];
+
+        table.render({
+            elem: '#site-table',
+            url: MODULE_PATH + 'list',
+            page: true,
+            method: 'post',
+            limit: 10,
+            limits: [10, 20, 50, 100],
+            cols: cols,
+            skin: 'line',
+            toolbar: '#site-toolbar',
+            defaultToolbar: ['refresh', 'filter', 'print', 'exports'],
+            where: {
+                orderByColumn: "site_no",
+                isAsc: "asc"
+            }
+        });
+
+        table.on('tool(site-table)', function (obj) {
+            if (obj.event === 'disable') {
+                window.disable(obj);
+            } else if (obj.event === 'edit') {
+                window.edit(obj);
+            }
+        });
+
+        table.on('toolbar(site-table)', function (obj) {
+            if (obj.event === 'register') {
+                window.register();
+            }
+        });
+
+        form.on('submit(site-query)', function (data) {
+            table.reload('site-table', {where: data.field, page: {curr: 1}});
+            return false;
+        });
+
+        window.register = function () {
+            layer.open({
+                type: 2,
+                title: '场所登记',
+                shade: 0.1,
+                area: ['600px', '560px'],
+                content: MODULE_PATH + 'register'
+            });
+        };
+
+        window.edit = function (obj) {
+            layer.open({
+                type: 2,
+                title: '场所档案修改',
+                shade: 0.1,
+                area: ['600px', '560px'],
+                content: MODULE_PATH + 'edit/' + obj.data['id']
+            });
+        };
+
+        // 停用：仅置停用状态，历史单据上的关联不断
+        window.disable = function (obj) {
+            layer.confirm('停用后，新预警单将选不到该场所；历史单据上的关联保留。确定停用？',
+                {icon: 3, title: '停用确认'}, function (index) {
+                    layer.close(index);
+                    let loading = layer.load();
+                    $.ajax({
+                        url: MODULE_PATH + "disable?id=" + obj.data['id'],
+                        dataType: 'json',
+                        type: 'put',
+                        success: function (result) {
+                            layer.close(loading);
+                            if (result.code == 200) {
+                                layer.msg(result.msg, {icon: 1, time: 1000}, function () {
+                                    table.reload('site-table');
+                                });
+                            } else {
+                                layer.msg(result.msg, {icon: 2, time: 2000});
+                            }
+                        }
+                    });
+                });
+        };
+    })
+</script>
+</html>

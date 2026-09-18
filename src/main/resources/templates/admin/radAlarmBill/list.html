@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.pollix.at/thymeleaf/shiro">
+<head>
+    <th:block th:include="include :: header('剂量预警单台账')"/>
+</head>
+<body class="pear-container">
+<div class="layui-card">
+    <div class="layui-card-body">
+        <form class="layui-form" action="">
+            <div class="layui-form-item">
+                <label class="layui-form-label">所属场所</label>
+                <div class="layui-input-inline">
+                    <select name="siteId" id="siteId" class="layui-input">
+                        <option value="">全部场所</option>
+                    </select>
+                </div>
+                <label class="layui-form-label">处理状态</label>
+                <div class="layui-input-inline">
+                    <select name="status" class="layui-input">
+                        <option value="">全部状态</option>
+                        <option value="0">待处理</option>
+                        <option value="1">已处理</option>
+                        <option value="2">已办结</option>
+                    </select>
+                </div>
+                <label class="layui-form-label">预警单号</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="billNo" class="layui-input">
+                </div>
+                <button class="pear-btn pear-btn-md pear-btn-primary" lay-submit lay-filter="bill-query">
+                    <i class="layui-icon layui-icon-search"></i>
+                    查询
+                </button>
+                <button type="reset" class="pear-btn pear-btn-md">
+                    <i class="layui-icon layui-icon-refresh"></i>
+                    重置
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="layui-card">
+    <div class="layui-card-body">
+        <table id="bill-table" lay-filter="bill-table"></table>
+    </div>
+</div>
+</body>
+
+<script type="text/html" id="bill-toolbar">
+    <button shiro:hasPermission="rad:radAlarmBill:add" class="pear-btn pear-btn-primary pear-btn-md" lay-event="add">
+        <i class="layui-icon layui-icon-add-1"></i>
+        预警登记
+    </button>
+    <button shiro:hasPermission="rad:radAlarmBill:remove" class="pear-btn pear-btn-danger pear-btn-md" lay-event="batchRemove">
+        <i class="layui-icon layui-icon-delete"></i>
+        删除
+    </button>
+</script>
+
+<script type="text/html" id="bill-level-tpl">
+    {{# if(d.alarmLevel == 1){ }}<span style="color:#5FB878;">1档·正常</span>
+    {{# } else if(d.alarmLevel == 2){ }}<span style="color:#1E9FFF;">2档·关注</span>
+    {{# } else if(d.alarmLevel == 3){ }}<span style="color:#FFB800;">3档·管控</span>
+    {{# } else if(d.alarmLevel == 4){ }}<span style="color:#FF5722;">4档·报警</span>
+    {{# } else { }}<span>-</span>{{# } }}
+</script>
+
+<script type="text/html" id="bill-status-tpl">
+    {{# if(d.status == 0){ }}<span style="color:#FF5722;">待处理</span>
+    {{# } else if(d.status == 1){ }}<span style="color:#FFB800;">已处理</span>
+    {{# } else if(d.status == 2){ }}<span style="color:#5FB878;">已办结</span>
+    {{# } else { }}<span>-</span>{{# } }}
+</script>
+
+<script type="text/html" id="bill-site-tpl">
+    {{# if(d.siteName){ }}{{ d.siteName }}（{{ d.siteNo }}）{{# } else { }}<span style="color:#999;">场所已删除</span>{{# } }}
+</script>
+
+<script type="text/html" id="bill-bar">
+    <button shiro:hasPermission="rad:radAlarmBill:remove" class="pear-btn pear-btn-danger pear-btn-sm" lay-event="remove">
+        <i class="layui-icon layui-icon-delete"></i>
+    </button>
+</script>
+
+<th:block th:include="include :: footer"/>
+<script>
+    layui.use(['table', 'form', 'jquery'], function () {
+        let table = layui.table;
+        let form = layui.form;
+        let $ = layui.jquery;
+
+        let MODULE_PATH = rootPath + "/RadAlarmBillController/";
+        let cols = [
+            [
+                {type: 'checkbox'},
+                {title: 'ID', field: 'id', align: 'center', hide: true},
+                {title: '预警单号', field: 'billNo', align: 'center', width: 150},
+                {title: '所属场所', field: 'siteName', align: 'center', templet: '#bill-site-tpl'},
+                {title: '所属分区', field: 'areaName', align: 'center', width: 110},
+                {title: '剂量率(μSv/h)', field: 'qty', align: 'center', width: 130},
+                {title: '预警档位', field: 'alarmLevel', align: 'center', width: 110, templet: '#bill-level-tpl'},
+                {title: '处理状态', field: 'status', align: 'center', width: 100, templet: '#bill-status-tpl'},
+                {title: '登记时间', field: 'createTime', align: 'center', width: 170},
+                {title: '操作', toolbar: '#bill-bar', align: 'center', width: 90}
+            ]
+        ];
+
+        // 筛选用场所下拉：含已停用场所，历史单才能按场所筛
+        $.ajaxSettings.async = false;
+        $.getJSON(MODULE_PATH + 'siteOptions', function (data) {
+            let rows = data.data || [];
+            rows.forEach(function (s) {
+                let label = s.siteName + '（' + s.siteNo + '）' + (s.status === 1 ? '·已停用' : '');
+                $('#siteId').append('<option value="' + s.id + '">' + label + '</option>');
+            });
+        });
+        $.ajaxSettings.async = true;
+        form.render('select');
+
+        table.render({
+            elem: '#bill-table',
+            url: MODULE_PATH + 'list',
+            page: true,
+            method: 'get',
+            limit: 10,
+            limits: [10, 20, 50, 100],
+            cols: cols,
+            skin: 'line',
+            toolbar: '#bill-toolbar',
+            defaultToolbar: ['refresh', 'filter', 'print', 'exports']
+        });
+
+        table.on('tool(bill-table)', function (obj) {
+            if (obj.event === 'remove') {
+                window.remove(obj);
+            }
+        });
+
+        table.on('toolbar(bill-table)', function (obj) {
+            if (obj.event === 'add') {
+                window.add();
+            } else if (obj.event === 'batchRemove') {
+                window.batchRemove(obj);
+            }
+        });
+
+        form.on('submit(bill-query)', function (data) {
+            table.reload('bill-table', {where: data.field, page: {curr: 1}});
+            return false;
+        });
+
+        window.add = function () {
+            layer.open({
+                type: 2,
+                title: '剂量预警登记',
+                shade: 0.1,
+                area: ['600px', '520px'],
+                content: MODULE_PATH + 'add'
+            });
+        };
+
+        window.remove = function (obj) {
+            layer.confirm('确定删除该预警单？', {icon: 3, title: '提示'}, function (index) {
+                layer.close(index);
+                let loading = layer.load();
+                $.ajax({
+                    url: MODULE_PATH + "remove?ids=" + obj.data['id'],
+                    dataType: 'json',
+                    type: 'delete',
+                    success: function (result) {
+                        layer.close(loading);
+                        if (result.code == 200) {
+                            layer.msg(result.msg, {icon: 1, time: 1000}, function () {
+                                obj.del();
+                            });
+                        } else {
+                            layer.msg(result.msg, {icon: 2, time: 2000});
+                        }
+                    }
+                });
+            });
+        };
+
+        window.batchRemove = function (obj) {
+            let data = table.checkStatus(obj.config.id).data;
+            if (data.length === 0) {
+                layer.msg("未选中数据", {icon: 3, time: 1000});
+                return false;
+            }
+            let ids = data.map(function (r) {
+                return r.id;
+            }).join(',');
+            layer.confirm('确定删除这些预警单？', {icon: 3, title: '提示'}, function (index) {
+                layer.close(index);
+                let loading = layer.load();
+                $.ajax({
+                    url: MODULE_PATH + "remove?ids=" + ids,
+                    dataType: 'json',
+                    type: 'delete',
+                    success: function (result) {
+                        layer.close(loading);
+                        if (result.code == 200) {
+                            layer.msg(result.msg, {icon: 1, time: 1000}, function () {
+                                table.reload('bill-table');
+                            });
+                        } else {
+                            layer.msg(result.msg, {icon: 2, time: 2000});
+                        }
+                    }
+                });
+            });
+        };
+    })
+</script>
+</html>

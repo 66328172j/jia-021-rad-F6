@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:include="include :: header('场所登记')"/>
+</head>
+<body>
+<form class="layui-form">
+    <div class="mainBox">
+        <div class="main-container">
+            <div class="layui-form-item">
+                <label class="layui-form-label">场所编号</label>
+                <div class="layui-input-block">
+                    <input type="text" name="siteNo" th:value="${suggestSiteNo}" autocomplete="off"
+                           placeholder="RAD + 3位顺序号，如 RAD001" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">场所名称</label>
+                <div class="layui-input-block">
+                    <input type="text" name="siteName" autocomplete="off" placeholder="如 1号操作间"
+                           class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">场所类型</label>
+                <div class="layui-input-block">
+                    <input type="text" name="siteType" autocomplete="off" placeholder="如 操作间"
+                           class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">所属分区</label>
+                <div class="layui-input-block">
+                    <input type="text" name="areaName" autocomplete="off" placeholder="如 控制区"
+                           class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">备注</label>
+                <div class="layui-input-block">
+                    <textarea name="remark" class="layui-textarea"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="bottom">
+        <div class="button-container">
+            <button type="submit" class="layui-btn layui-btn-normal layui-btn-sm" lay-submit
+                    lay-filter="site-register-save">
+                <i class="layui-icon layui-icon-ok"></i>
+                登记
+            </button>
+            <button type="reset" class="layui-btn layui-btn-primary layui-btn-sm">
+                <i class="layui-icon layui-icon-refresh"></i>
+                重置
+            </button>
+        </div>
+    </div>
+</form>
+<th:block th:include="include :: footer"/>
+<script>
+    layui.use(['form', 'jquery'], function () {
+        let form = layui.form;
+        let $ = layui.jquery;
+        let MODULE_PATH = rootPath + "/RadSiteController";
+
+        form.on('submit(site-register-save)', function (data) {
+            $.ajax({
+                url: MODULE_PATH + '/register',
+                data: data.field,
+                dataType: 'json',
+                type: 'post',
+                success: function (result) {
+                    if (result.code == 200) {
+                        layer.msg(result.msg, {icon: 1, time: 1000}, function () {
+                            parent.layer.close(parent.layer.getFrameIndex(window.name));
+                            parent.layui.table.reload("site-table");
+                        });
+                    } else {
+                        layer.msg(result.msg, {icon: 2, time: 2000});
+                    }
+                }
+            });
+            return false;
+        });
+    })
+</script>
+</body>
+</html>

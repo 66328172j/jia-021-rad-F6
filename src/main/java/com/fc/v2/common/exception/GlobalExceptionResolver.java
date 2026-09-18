@@ -119,4 +119,13 @@ public class GlobalExceptionResolver{
         return AjaxResult.error("运行时异常:" + e.getMessage());
     }
 
+    /**
+     * 业务校验异常（校验归服务层），消息直接回显
+     */
+    @ExceptionHandler(ServiceException.class)
+    public AjaxResult serviceException(ServiceException e)
+    {
+        return AjaxResult.error(e.getMessage());
+    }
+
 }
