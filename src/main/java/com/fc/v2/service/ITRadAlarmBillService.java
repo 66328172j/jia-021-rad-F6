@@ -19,8 +19,17 @@ public interface ITRadAlarmBillService {
     /** 按条件查询列表（分页由调用方统一处理） */
     List<TRadAlarmBill> selectTRadAlarmBillList(Wrapper<TRadAlarmBill> queryWrapper);
 
+    /** 按单据条件查询列表（场所/状态筛选，分页由调用方统一处理） */
+    List<TRadAlarmBill> selectTRadAlarmBillList(TRadAlarmBill record);
+
     /** 新增 */
     int insertTRadAlarmBill(TRadAlarmBill record);
+
+    /**
+     * 登记（预警单只从登记进）：单号手工录、校验归服务层，
+     * 档位由系统按剂量率折算、状态由系统置为待处理，createBy 为登记人
+     */
+    int insertTRadAlarmBill(TRadAlarmBill record, String createBy);
 
     /** 修改 */
     int updateTRadAlarmBill(TRadAlarmBill record);

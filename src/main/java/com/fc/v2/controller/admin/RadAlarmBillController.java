@@ -1,12 +1,12 @@
 package com.fc.v2.controller.admin;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.fc.v2.common.base.BaseController;
 import com.fc.v2.common.domain.AjaxResult;
 import com.fc.v2.common.domain.ResultTable;
 import com.fc.v2.common.log.Log;
 import com.fc.v2.model.auto.TRadAlarmBill;
 import com.fc.v2.service.ITRadAlarmBillService;
+import com.fc.v2.shiro.util.ShiroUtils;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
@@ -44,11 +44,20 @@ public class RadAlarmBillController extends BaseController {
     @RequiresPermissions("rad:radAlarmBill:list")
     @ResponseBody
     public ResultTable list(TRadAlarmBill record) {
-        QueryWrapper<TRadAlarmBill> queryWrapper = new QueryWrapper<TRadAlarmBill>();
         startPage();
         com.github.pagehelper.PageInfo<TRadAlarmBill> page =
-                new com.github.pagehelper.PageInfo<TRadAlarmBill>(radAlarmBillService.selectTRadAlarmBillList(queryWrapper));
+                new com.github.pagehelper.PageInfo<TRadAlarmBill>(radAlarmBillService.selectTRadAlarmBillList(record));
         return pageTable(page.getList(), page.getTotal());
+    }
+
+    @Log(title = "剂量预警单登记", action = "register")
+    @ApiOperation(value = "登记", notes = "登记")
+    @PostMapping("/register")
+    @RequiresPermissions("rad:radAlarmBill:register")
+    @ResponseBody
+    public AjaxResult register(TRadAlarmBill record) {
+        // 认服务返回：校验归服务层，档位/状态由系统定
+        return toAjax(radAlarmBillService.insertTRadAlarmBill(record, ShiroUtils.getLoginName()));
     }
 
     @Log(title = "剂量预警单新增", action = "add")
@@ -57,6 +66,7 @@ public class RadAlarmBillController extends BaseController {
     @RequiresPermissions("rad:radAlarmBill:add")
     @ResponseBody
     public AjaxResult add(TRadAlarmBill record) {
+        // 只从登记进：老入口保留，实际走同一套登记逻辑
         return toAjax(radAlarmBillService.insertTRadAlarmBill(record));
     }
 
